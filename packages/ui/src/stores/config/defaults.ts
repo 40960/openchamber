@@ -5,13 +5,16 @@ import { loadDesktopSettings } from '@/lib/persistence';
 import { type ConfigSlice, type ConfigStore } from './types';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { fromDirectoryKey } from './directories';
-import { getProjectDefaultsForConfigDirectory } from './projectDefaults';
+import { getProjectDefaultsForConfigDirectory, isChatDraftOpen } from './projectDefaults';
 import { resolveGitGenerationModelSelection } from './selectionResolution';
 
 interface OpenChamberDefaults {
     defaultModel?: string;
     defaultVariant?: string;
     defaultAgent?: string;
+    chatsDefaultModel?: string;
+    chatsDefaultVariant?: string;
+    chatsDefaultAgent?: string;
     autoCreateWorktree?: boolean;
     gitmojiEnabled?: boolean;
     defaultFileViewerPreview?: boolean;
@@ -78,6 +81,9 @@ const toOpenChamberDefaults = (data: DesktopSettings): OpenChamberDefaults => {
         defaultModel: defaultModel.length > 0 ? defaultModel : undefined,
         defaultVariant: defaultVariant.length > 0 ? defaultVariant : undefined,
         defaultAgent: defaultAgent.length > 0 ? defaultAgent : undefined,
+        chatsDefaultModel: data.chatsDefaultModel?.trim() || undefined,
+        chatsDefaultVariant: data.chatsDefaultVariant?.trim() || undefined,
+        chatsDefaultAgent: data.chatsDefaultAgent?.trim() || undefined,
         autoCreateWorktree: data.autoCreateWorktree,
         gitmojiEnabled: data.gitmojiEnabled,
         defaultFileViewerPreview: data.defaultFileViewerPreview,
@@ -129,6 +135,9 @@ export const createSettingsDefaults: ConfigSlice<
     | 'setSettingsDefaultModel'
     | 'setSettingsDefaultVariant'
     | 'setSettingsDefaultAgent'
+    | 'setChatsDefaultModel'
+    | 'setChatsDefaultVariant'
+    | 'setChatsDefaultAgent'
     | 'setSettingsAutoCreateWorktree'
     | 'setSettingsGitmojiEnabled'
     | 'setSettingsDefaultFileViewerPreview'
@@ -150,6 +159,9 @@ export const createSettingsDefaults: ConfigSlice<
                 settingsDefaultModel: edited ? state.settingsDefaultModel : defaults.defaultModel,
                 settingsDefaultVariant: edited ? state.settingsDefaultVariant : defaults.defaultVariant,
                 settingsDefaultAgent: edited ? state.settingsDefaultAgent : defaults.defaultAgent,
+                chatsDefaultModel: edited ? state.chatsDefaultModel : defaults.chatsDefaultModel,
+                chatsDefaultVariant: edited ? state.chatsDefaultVariant : defaults.chatsDefaultVariant,
+                chatsDefaultAgent: edited ? state.chatsDefaultAgent : defaults.chatsDefaultAgent,
                 settingsAutoCreateWorktree: defaults.autoCreateWorktree ?? false,
                 settingsGitmojiEnabled: defaults.gitmojiEnabled ?? false,
                 settingsDefaultFileViewerPreview: defaults.defaultFileViewerPreview ?? true,
@@ -174,7 +186,7 @@ export const createSettingsDefaults: ConfigSlice<
         const projectDefaults = getProjectDefaultsForConfigDirectory(fromDirectoryKey(state.activeDirectoryKey));
         if (!useSessionUIStore.getState().currentSessionId && state.selectionSource === 'auto' && state.agentSelectionSource === 'auto'
             && state.currentVariantSelection.override === undefined
-            && (projectDefaults.projectDefaultModel || state.settingsDefaultModel)) {
+            && (projectDefaults.projectDefaultModel || projectDefaults.projectDefaultAgent || state.settingsDefaultModel)) {
             state.applyDefaultModelAgentSelection(projectDefaults);
         }
         markStartupTrace('config.defaults:published');
@@ -198,6 +210,24 @@ export const createSettingsDefaults: ConfigSlice<
          set({ settingsDefaultAgent: agent });
          if (!useSessionUIStore.getState().currentSessionId) get().applyDefaultModelAgentSelection();
      },
+
+    setChatsDefaultModel: (model: string | undefined) => {
+        recordOpenChamberDefaultsChange();
+        set({ chatsDefaultModel: model });
+        if (isChatDraftOpen()) get().applyDefaultModelAgentSelection();
+    },
+
+    setChatsDefaultVariant: (variant: string | undefined) => {
+        recordOpenChamberDefaultsChange();
+        set({ chatsDefaultVariant: variant });
+        if (isChatDraftOpen()) get().applyDefaultModelAgentSelection();
+    },
+
+    setChatsDefaultAgent: (agent: string | undefined) => {
+        recordOpenChamberDefaultsChange();
+        set({ chatsDefaultAgent: agent });
+        if (isChatDraftOpen()) get().applyDefaultModelAgentSelection();
+    },
 
     setSettingsAutoCreateWorktree: (enabled: boolean) => {
         set({ settingsAutoCreateWorktree: enabled });

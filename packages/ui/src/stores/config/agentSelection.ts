@@ -6,6 +6,8 @@ import { findProviderModel, modelHasVariant, parseModelString } from './selectio
 import { modelVariantNames } from '@/lib/modelVariants';
 import { resolveEffortChoice, readRememberedEffort } from '@/lib/modelEfforts';
 import { findCatalogModel } from '@/lib/opencode/model';
+import { fromDirectoryKey } from './directories';
+import { getProjectDefaultsForConfigDirectory } from './projectDefaults';
 
 export const createAgentSelection: ConfigSlice<'setAgent'> = (set, get) => ({
     setAgent: (agentName: string | undefined, options?: { keepModel?: boolean }) => {
@@ -243,8 +245,9 @@ export const createAgentSelection: ConfigSlice<'setAgent'> = (set, get) => ({
                 return;
             }
 
-            if (settingsDefaultModel) {
-                const parsed = parseModelString(settingsDefaultModel);
+            const scopeDefaultModel = getProjectDefaultsForConfigDirectory(fromDirectoryKey(get().activeDirectoryKey)).projectDefaultModel;
+            for (const configuredModel of [scopeDefaultModel, settingsDefaultModel]) {
+                const parsed = configuredModel ? parseModelString(configuredModel) : null;
                 if (parsed) {
                     const settingsProvider = providers.find((p) => p.id === parsed.providerId);
                     if (findCatalogModel(settingsProvider?.models, parsed.modelId)) {

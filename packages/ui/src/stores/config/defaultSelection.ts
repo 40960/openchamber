@@ -15,7 +15,7 @@ import {
     toDirectoryKey,
     toConfigDirectoryKey,
 } from './directories';
-import { getProjectDefaultsForConfigDirectory, readProjectDefaults } from './projectDefaults';
+import { getProjectDefaultsForConfigDirectory, readScopeDefaults } from './projectDefaults';
 import { hasLiveCatalog, createEmptyDirectoryScopedConfig } from './directorySnapshots';
 import { useSessionUIStore } from '@/sync/session-ui-store';
 import { useSelectionStore } from '@/sync/selection-store';
@@ -181,7 +181,7 @@ export const createDefaultSelection: ConfigSlice<
             agents: isActive ? state.agents : (snapshot?.agents ?? []),
             providers: isActive ? state.providers : (snapshot?.providers ?? []),
             catalogLoaded: hasLiveCatalog(state, directoryKey),
-            ...readProjectDefaults(configDirectory),
+            ...readScopeDefaults(configDirectory),
             settingsDefaultAgent: state.settingsDefaultAgent,
             settingsDefaultModel: state.settingsDefaultModel,
             settingsDefaultVariant: state.settingsDefaultVariant,

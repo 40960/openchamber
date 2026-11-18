@@ -113,7 +113,7 @@ import { createMessageSearchRuntime } from './lib/message-search/runtime.js';
 import { applyOwnedArchiveState } from './lib/opencode/proxy.js';
 import { createScheduledTasksRuntime } from './lib/scheduled-tasks/runtime.js';
 import { resolveSessionDefaults } from './lib/scheduled-tasks/session-defaults.js';
-import { createChatsScope } from './lib/scheduled-tasks/chats-scope.js';
+import { createChatsScope, readChatsDefaults } from './lib/scheduled-tasks/chats-scope.js';
 import { createChatDirectoryCleanupRuntime } from './lib/chat-directories/runtime.js';
 import { createUnregisteredScheduledWorktreeBridge } from './lib/scheduled-tasks/worktree-bridge.js';
 import { createServerStartupRuntime } from './lib/server-frame/server-startup-runtime.js';
@@ -1870,7 +1870,7 @@ const scheduledTasksRuntime = createScheduledTasksRuntime({
   isGitRepository: (projectDirectory) => scheduledWorktreeBridge.isGitRepository(projectDirectory),
   readSessionDefaults: async (projectID) => {
     const settings = await readSettingsFromDiskMigrated();
-    const project = sanitizeProjects(settings?.projects || []).find((entry) => entry.id === projectID) ?? null;
+    const project = projectID === scheduledChatsScope.id ? readChatsDefaults(settings) : sanitizeProjects(settings?.projects || []).find((entry) => entry.id === projectID) ?? null;
     return resolveSessionDefaults({ settings, project });
   },
   resolveAutoSelection: (input) => routingRuntime.resolveAutoSelection(input),
