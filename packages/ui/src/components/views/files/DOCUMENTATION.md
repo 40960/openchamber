@@ -322,6 +322,44 @@ alone missed both. A viewer that is laid out nowhere, behind another tab of
 the panel, ignores the keys, and the first viewer to handle a key marks it
 handled, so the docked viewer behind the fullscreen one cannot step twice.
 
+An image's meta bar has a fullscreen toggle everywhere but the phone layout
+(`useFileImageFullscreen`; the tablet layout keeps it). It opens
+`renderFileImageFullscreen`, a full-size shared `Dialog` over the whole window
+that renders the same `ImageArtifact` through `renderImageArtifact`: the same
+`src`, neighbours and gestures, starting at fit. The arrow-key scope is the
+context panel or the overlay (`data-image-fullscreen`), whichever holds the
+viewer, and the overlay's viewer listens on the overlay itself: Base UI's
+popup stops arrow keys from bubbling on to the document. Other dialogs, such
+as the phone's workspace drawer, keep the document listener. A step from the
+overlay opens the neighbour in the panel as the docked arrows do, and the
+overlay follows the selection. While the next image loads, or when its read
+fails, the overlay keeps a bar with the name and the exit button, so it can be
+left without a keyboard. It closes when the panel is hidden or the selection
+is a file other than an image; an SVG shown as source stays, and a step that
+briefly leaves no file selected does not close it. Ctrl/⌘+W closes the
+overlay first, as it does the Settings window. Its bar is the header's height and padded by
+`--oc-titlebar-start-inset` and `--oc-titlebar-end-inset` (published by
+`Header`), so the window controls the OS draws over the page (macOS traffic
+lights, the Windows controls overlay) never cover its buttons. On close the
+focus goes to the docked toggle, which a step may have remounted, so the docked
+arrows keep working.
+
+### Why a dialog over the window and not the panel's fullscreen
+
+The panel `<aside>` clips and isolates its content, so nothing inside it can
+cover the window. The shared dialog brings the focus trap, Escape, focus return
+and `oc-dialog-open`, which turns off the title bar's drag regions under it;
+the composer's key and paste redirect and the chat arrow navigation already
+skip `[role="dialog"]`. The overlay therefore sets no global flag such as
+`isImagePreviewOpen`: a flag every automatic close must clear can stick, and a
+stuck one silently stops typing from reaching the composer.
+
+### Why the overlay shares the docked `src` and does not fetch again
+
+Both viewers render inside `FilesView`, which owns the object URL and revokes
+it when the selection changes, so the overlay lives no longer than its URL. A
+second fetch would double the bytes and need its own revoke.
+
 Non-text artifacts the browser must own (PDF, audio, video, fonts) are loaded
 through `getRuntimeUrlResolver().authenticatedAsset('/api/fs/raw', …)` with
 the scoped URL token; the server streams byte ranges so playback can seek.
