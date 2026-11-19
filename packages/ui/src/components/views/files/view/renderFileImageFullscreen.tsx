@@ -31,6 +31,7 @@ export function renderFileImageFullscreen({ artifacts, fileDocument, imageFullsc
         aria-label={selectedFile?.name ?? t('filesView.editor.fullscreen')}
         data-image-fullscreen=""
         showCloseButton={false}
+        fullWindow
         layerClassName="p-0"
         backdropProps={{ className: 'rounded-none backdrop-blur-none' }}
         finalFocus={dockedToggle}

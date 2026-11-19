@@ -342,7 +342,8 @@ overlay first, as it does the Settings window. Its bar is the header's height an
 `Header`), so the window controls the OS draws over the page (macOS traffic
 lights, the Windows controls overlay) never cover its buttons. It carries the
 header's `header-safe-area` class too, so on an iPad its buttons sit below the
-status bar as the header's do. On close the
+status bar as the header's do. Its `DialogContent` is `fullWindow`, so in an
+installed app window 768 px wide or narrower it still fills the window. On close the
 focus goes to the docked toggle, which a step may have remounted, so the docked
 arrows keep working.
 
