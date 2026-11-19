@@ -112,8 +112,8 @@ import { isAutoModel, JEV_BACKGROUND_TIMEOUT_MS } from './lib/routing/defaults.j
 import { createMessageSearchRuntime } from './lib/message-search/runtime.js';
 import { applyOwnedArchiveState } from './lib/opencode/proxy.js';
 import { createScheduledTasksRuntime } from './lib/scheduled-tasks/runtime.js';
-import { resolveSessionDefaults } from './lib/scheduled-tasks/session-defaults.js';
-import { createChatsScope, readChatsDefaults } from './lib/scheduled-tasks/chats-scope.js';
+import { createReadSessionDefaults, resolveSessionDefaults } from './lib/scheduled-tasks/session-defaults.js';
+import { createChatsScope } from './lib/scheduled-tasks/chats-scope.js';
 import { createChatDirectoryCleanupRuntime } from './lib/chat-directories/runtime.js';
 import { createUnregisteredScheduledWorktreeBridge } from './lib/scheduled-tasks/worktree-bridge.js';
 import { createServerStartupRuntime } from './lib/server-frame/server-startup-runtime.js';
@@ -1868,11 +1868,11 @@ const scheduledTasksRuntime = createScheduledTasksRuntime({
   },
   removeTaskWorktree: (input) => scheduledWorktreeBridge.remove(input),
   isGitRepository: (projectDirectory) => scheduledWorktreeBridge.isGitRepository(projectDirectory),
-  readSessionDefaults: async (projectID) => {
-    const settings = await readSettingsFromDiskMigrated();
-    const project = projectID === scheduledChatsScope.id ? readChatsDefaults(settings) : sanitizeProjects(settings?.projects || []).find((entry) => entry.id === projectID) ?? null;
-    return resolveSessionDefaults({ settings, project });
-  },
+  readSessionDefaults: createReadSessionDefaults({
+    readSettings: readSettingsFromDiskMigrated,
+    sanitizeProjects,
+    chatsScopeID: scheduledChatsScope.id,
+  }),
   resolveAutoSelection: (input) => routingRuntime.resolveAutoSelection(input),
   listProjects: async () => {
     const settings = await readSettingsFromDiskMigrated();

@@ -1,3 +1,5 @@
+import { readChatsDefaults } from './chats-scope.js';
+
 export interface SessionDefaultSettings {
   defaultModel?: unknown;
   defaultVariant?: unknown;
@@ -29,4 +31,23 @@ export const resolveSessionDefaults = ({ settings, project }: {
     variant,
     agent: text(project?.defaultAgent) ?? text(settings?.defaultAgent),
   };
+};
+
+interface ScopeDefaultSettings extends SessionDefaultSettings {
+  chatsDefaultAgent?: unknown;
+  chatsDefaultModel?: unknown;
+  chatsDefaultVariant?: unknown;
+  projects?: unknown;
+}
+
+export const createReadSessionDefaults = ({ readSettings, sanitizeProjects, chatsScopeID }: {
+  readSettings: () => Promise<ScopeDefaultSettings | null | undefined>;
+  sanitizeProjects: (projects: ScopeDefaultSettings['projects']) => ReadonlyArray<SessionDefaultSettings & { id: string }>;
+  chatsScopeID: string;
+}) => async (projectID: string) => {
+  const settings = (await readSettings()) ?? null;
+  const project = projectID === chatsScopeID
+    ? readChatsDefaults(settings)
+    : sanitizeProjects(settings?.projects || []).find((entry) => entry.id === projectID) ?? null;
+  return resolveSessionDefaults({ settings, project });
 };

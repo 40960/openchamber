@@ -260,7 +260,8 @@ or sets `execution.useDefaults: true`. Such a task reads the session defaults
 when each run starts (`session-defaults.js`: the project's `defaultModel` /
 `defaultVariant` / `defaultAgent`, then the global ones; a Chats-scope task
 reads the Chats defaults from `readChatsDefaults` in `chats-scope.js` in the
-project's place), so changing a default
+project's place; `createReadSessionDefaults` matches the Chats storage id, the
+one runs carry, not `CHATS_SCOPE_PUBLIC_ID`), so changing a default
 reaches it on its next run without editing it. With nothing set, the session is
 created without a model or agent and OpenCode applies its own. A pinned value
 stored next to `useDefaults` is kept only for when the task is pinned again.
