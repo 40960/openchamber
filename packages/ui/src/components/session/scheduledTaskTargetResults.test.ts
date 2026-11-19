@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { Session } from '@/lib/opencode/model';
-import { SCHEDULED_TASK_TARGET_LIMIT, scheduledTaskTargetCandidates, scheduledTaskTargetResults } from './scheduledTaskTargetResults';
+import { SCHEDULED_TASK_TARGET_LIMIT, scheduledTaskTargetCandidates, scheduledTaskTargetLoad, scheduledTaskTargetResults } from './scheduledTaskTargetResults';
 
 // SAFETY: sessions as the stores hold them; the results read id, title, parentID, metadata and time.
 const session = (id: string, title: string, updated: number, extra: Partial<Session> = {}): Session => ({
@@ -118,6 +118,30 @@ describe('scheduled task target candidates', () => {
   test('the session cache wins over a stale live copy, and live copies fill only what the cache lacks', () => {
     const cached = [session('ses_a', 'Cached title', 5, { time: { created: 0, updated: 5, archived: 9 } }), session('ses_b', 'Kept', 4)];
     const live = [session('ses_a', 'Stale live title', 3), session('ses_c', 'Only live', 2)];
-    expect(scheduledTaskTargetCandidates(cached, live).map((entry) => `${entry.id}:${entry.title}`)).toEqual(['ses_b:Kept', 'ses_c:Only live']);
+    expect(scheduledTaskTargetCandidates(cached, [], live).map((entry) => `${entry.id}:${entry.title}`)).toEqual(['ses_b:Kept', 'ses_c:Only live']);
+  });
+
+  test('a session the cache holds as archived stays out, whatever a stale live copy says', () => {
+    const archived = [session('ses_a', 'Archived', 5, { time: { created: 0, updated: 5, archived: 9 } })];
+    const live = [session('ses_a', 'Stale live copy', 3), session('ses_c', 'Only live', 2)];
+    expect(scheduledTaskTargetCandidates([session('ses_b', 'Kept', 4)], archived, live).map((entry) => entry.id)).toEqual(['ses_b', 'ses_c']);
+  });
+});
+
+describe('scheduled task target load', () => {
+  test('reads as loading until the session cache has loaded, even when live sessions are already checked', () => {
+    expect(scheduledTaskTargetLoad({ eligibility: 'ready', cacheLoaded: false, cacheStatus: 'loading' })).toBe('loading');
+    expect(scheduledTaskTargetLoad({ eligibility: 'idle', cacheLoaded: false, cacheStatus: 'idle' })).toBe('loading');
+  });
+
+  test('a cache that failed to load, or a failed check, is a failure, never an empty list', () => {
+    expect(scheduledTaskTargetLoad({ eligibility: 'ready', cacheLoaded: false, cacheStatus: 'error' })).toBe('error');
+    expect(scheduledTaskTargetLoad({ eligibility: 'error', cacheLoaded: true, cacheStatus: 'ready' })).toBe('error');
+  });
+
+  test('once the cache has loaded, a refresh keeps the shown list, and no candidates means an empty project', () => {
+    expect(scheduledTaskTargetLoad({ eligibility: 'ready', cacheLoaded: true, cacheStatus: 'loading' })).toBe('ready');
+    expect(scheduledTaskTargetLoad({ eligibility: 'idle', cacheLoaded: true, cacheStatus: 'ready' })).toBe('ready');
+    expect(scheduledTaskTargetLoad({ eligibility: 'loading', cacheLoaded: true, cacheStatus: 'ready' })).toBe('loading');
   });
 });

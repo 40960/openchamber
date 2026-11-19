@@ -14,6 +14,9 @@ import { useSessionPinnedStore } from '@/stores/useSessionPinnedStore';
 import { compareSessionsByLifecycleOrder, useSessionOrderingStore } from '@/sync/session-ordering';
 import { scheduledTaskTargetResults, type ScheduledTaskTargetRow } from './scheduledTaskTargetResults';
 
+type TargetResults = ReturnType<typeof scheduledTaskTargetResults>;
+const NO_RESULTS: TargetResults = { selected: null, rows: [], more: false };
+
 export function ScheduledTaskTargetPicker({ value, eligible, known, load, isMobile, onSelect }: {
   value: string;
   eligible: readonly Session[];
@@ -28,18 +31,15 @@ export function ScheduledTaskTargetPicker({ value, eligible, known, load, isMobi
   const pinnedSessionIds = useSessionPinnedStore((state) => state.ids);
   const rankById = useSessionOrderingStore((state) => state.rankById);
 
-  const shownResults = React.useRef<ReturnType<typeof scheduledTaskTargetResults>>({ selected: null, rows: [], more: false });
-  const results = React.useMemo(() => {
-    if (!open) return shownResults.current;
-    shownResults.current = scheduledTaskTargetResults({
-      eligible,
-      known,
-      query,
-      selectedId: value,
-      compare: (left, right) => compareSessionsByLifecycleOrder(left, right, pinnedSessionIds, rankById),
-    });
-    return shownResults.current;
-  }, [open, eligible, known, query, value, pinnedSessionIds, rankById]);
+  const [closingResults, setClosingResults] = React.useState<TargetResults>(NO_RESULTS);
+  const openResults = React.useMemo(() => (open ? scheduledTaskTargetResults({
+    eligible,
+    known,
+    query,
+    selectedId: value,
+    compare: (left, right) => compareSessionsByLifecycleOrder(left, right, pinnedSessionIds, rankById),
+  }) : null), [open, eligible, known, query, value, pinnedSessionIds, rankById]);
+  const results = openResults ?? closingResults;
   const rows = results.selected ? [results.selected, ...results.rows] : results.rows;
   const status = load === 'loading'
     ? t('common.loading')
@@ -54,8 +54,11 @@ export function ScheduledTaskTargetPicker({ value, eligible, known, load, isMobi
   const selectedTitle = value ? known.find((session) => session.id === value)?.title.trim() || value : '';
 
   const changeOpen = (next: boolean) => {
+    if (!next) {
+      setClosingResults(results);
+      setQuery('');
+    }
     setOpen(next);
-    if (!next) setQuery('');
   };
   const choose = (sessionId: string) => {
     onSelect(sessionId);
@@ -67,9 +70,7 @@ export function ScheduledTaskTargetPicker({ value, eligible, known, load, isMobi
   const trigger = (
     <button
       type="button"
-      onClick={isMobile ? () => changeOpen(true) : undefined}
-      aria-haspopup={isMobile ? 'dialog' : undefined}
-      aria-expanded={isMobile ? open : undefined}
+      {...(isMobile ? { onClick: () => changeOpen(true), 'aria-haspopup': 'dialog' as const, 'aria-expanded': open } : {})}
       className={cn(dropdownTriggerVariants({ size: 'default' }), 'w-fit max-w-full')}>
       <span dir={value ? 'auto' : undefined} className={cn('truncate', value ? 'text-foreground' : 'text-muted-foreground')}>
         {selectedTitle || t('sessions.scheduledTasks.editor.targetSession')}
@@ -117,8 +118,10 @@ export function ScheduledTaskTargetPicker({ value, eligible, known, load, isMobi
           <CommandList disableHorizontal>
             {status ? <CommandEmpty>{status}</CommandEmpty> : rows.map((row) => (
               <CommandItem key={row.id} value={row.id} onSelect={() => choose(row.id)} aria-current={row.id === value ? true : undefined}>
-                <span dir="auto" className="min-w-0 truncate typography-small">{row.title}</span>
-                {row.subagent ? <span className="min-w-0 shrink-[3] truncate typography-meta text-muted-foreground">{subagentLabel(row)}</span> : null}
+                <span className="flex min-w-0 flex-col">
+                  <span dir="auto" className="truncate typography-small">{row.title}</span>
+                  {row.subagent ? <span className="truncate typography-meta text-muted-foreground">{subagentLabel(row)}</span> : null}
+                </span>
                 {row.id === value ? <Icon name="check" className="ms-auto size-4 shrink-0" /> : null}
               </CommandItem>
             ))}

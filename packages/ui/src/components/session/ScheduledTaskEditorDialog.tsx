@@ -30,7 +30,7 @@ import {
   type ScheduledTaskDraft,
 } from './scheduledTaskEditorDraft';
 import { ScheduledTaskTargetPicker } from './ScheduledTaskTargetPicker';
-import { scheduledTaskTargetCandidates } from './scheduledTaskTargetResults';
+import { scheduledTaskTargetCandidates, scheduledTaskTargetLoad } from './scheduledTaskTargetResults';
 import { useI18n } from '@/lib/i18n';
 import { isValidCronExpression, getNextRuns, CRON_EXAMPLES } from '@/lib/cron';
 import { canonicalizeTimezone } from '@/lib/timezones';
@@ -191,9 +191,11 @@ export function ScheduledTaskEditorDialog(props: {
     if (open) setProjectId(props.projectId);
   }, [open, props.projectId]);
   const globalSessions = useGlobalSessionsStore((state) => state.activeSessions);
+  const archivedGlobalSessions = useGlobalSessionsStore((state) => state.archivedSessions);
   const liveSessions = useAllLiveSessions();
   const globalSessionsStatus = useGlobalSessionsStore((state) => state.status);
-  const candidates = React.useMemo(() => scheduledTaskTargetCandidates(globalSessions, liveSessions), [globalSessions, liveSessions]);
+  const globalSessionsLoaded = useGlobalSessionsStore((state) => state.hasLoaded);
+  const candidates = React.useMemo(() => scheduledTaskTargetCandidates(globalSessions, archivedGlobalSessions, liveSessions), [globalSessions, archivedGlobalSessions, liveSessions]);
   const candidatesKey = React.useMemo(
     () => candidates.map((session) => `${session.id}:${session.directory ?? ''}`).sort().join('\n'),
     [candidates],
@@ -223,6 +225,7 @@ export function ScheduledTaskEditorDialog(props: {
     );
     return () => controller.abort();
   }, [open, projectId, candidatesKey, eligibilityAttempt]);
+  const targetLoad = scheduledTaskTargetLoad({ eligibility: eligibility.status, cacheLoaded: globalSessionsLoaded, cacheStatus: globalSessionsStatus });
   const sessions = React.useMemo(
     () => (eligibility.status === 'ready' ? candidates.filter((session) => eligibility.ids.has(session.id)) : []),
     [candidates, eligibility],
@@ -643,14 +646,14 @@ export function ScheduledTaskEditorDialog(props: {
             value={draft.targetSessionId}
             eligible={sessions}
             known={candidates}
-            load={eligibility.status !== 'idle' ? eligibility.status : globalSessionsStatus === 'idle' ? 'loading' : globalSessionsStatus}
+            load={targetLoad}
             isMobile={isMobile}
             onSelect={(targetSessionId) => setDraft((prev) => ({ ...prev, targetSessionId }))}
           />
-          {eligibility.status === 'error' ? (
+          {targetLoad === 'error' ? (
             <div className="flex items-center gap-2 typography-meta text-muted-foreground">
               <span>{t('sessions.scheduledTasks.editor.targetLoadFailed')}</span>
-              <Button type="button" variant="ghost" size="xs" onClick={() => setEligibilityAttempt((attempt) => attempt + 1)}>
+              <Button type="button" variant="ghost" size="xs" onClick={() => { setEligibilityAttempt((attempt) => attempt + 1); void refreshGlobalSessions().catch(() => undefined); }}>
                 {t('sessions.scheduledTasks.editor.targetRetry')}
               </Button>
             </div>

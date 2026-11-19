@@ -18,10 +18,27 @@ type ScheduledTaskTargetResults = {
   more: boolean;
 };
 
-export const scheduledTaskTargetCandidates = (cached: readonly Session[], live: readonly Session[]): Session[] => {
-  const merged = new Map(cached.map((session) => [session.id, session]));
-  for (const session of live) if (!merged.has(session.id)) merged.set(session.id, session);
+export const scheduledTaskTargetCandidates = (
+  cachedActive: readonly Session[],
+  cachedArchived: readonly Session[],
+  live: readonly Session[],
+): Session[] => {
+  const merged = new Map(cachedActive.map((session) => [session.id, session]));
+  const archivedIds = new Set(cachedArchived.map((session) => session.id));
+  for (const session of live) if (!merged.has(session.id) && !archivedIds.has(session.id)) merged.set(session.id, session);
   return [...merged.values()].filter((session) => !session.time?.archived);
+};
+
+type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+export const scheduledTaskTargetLoad = ({ eligibility, cacheLoaded, cacheStatus }: {
+  eligibility: LoadStatus;
+  cacheLoaded: boolean;
+  cacheStatus: LoadStatus;
+}): 'loading' | 'error' | 'ready' => {
+  if (eligibility === 'error') return 'error';
+  if (!cacheLoaded) return cacheStatus === 'error' ? 'error' : 'loading';
+  return eligibility === 'loading' ? 'loading' : 'ready';
 };
 
 const isRoot = (session: Session): boolean => !session.parentID || isReviewSession(session);

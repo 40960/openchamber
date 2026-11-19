@@ -59,9 +59,11 @@ own their contracts in `project-context/DOCUMENTATION.md` and
   has no sessions. Request identity depends on session directories and IDs, so
   streaming record updates do not restart eligibility reads.
 - The target picker's candidates take the global session cache as authority; a
-  live directory copy only adds a session the cache lacks, as the stores'
-  gap-fill rule requires. Until the cache has loaded, the picker reads as
-  loading, never as a project without sessions.
+  live directory copy only adds a session the cache holds neither as active nor
+  as archived, as the stores' gap-fill rule requires. Until the cache's first
+  full load is done (`hasLoaded`), the picker reads as loading, even when live
+  sessions are already checked, so a partial list never looks complete; a later
+  refresh keeps the shown list.
 - The target picker lists root sessions while its search is empty and subagents
   only through a search, each named as its parent's subagent. Review sessions
   count as roots, `ownWork` workers never appear, an id query matches a whole
