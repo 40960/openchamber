@@ -141,6 +141,8 @@ gap.
   5 seconds for the location's plugins. `agent.list` waited in 2.2.0 to 2.2.6
   and answers early again since 2.2.7: the first read of a cold location is an
   empty list, then `agent.updated` follows within a second. The recovery stays.
+  Server code that needs a location's agents reads `model.list` first and
+  `agent.list` after it (`openchamber-sessions/selection-inputs.ts`).
 - **Plugin providers exist only in the running OpenCode.** Nothing about them
   reaches `opencode.json` or `auth.json`; `/api/provider` is the only view, and
   it strips `options.fetch`, so nothing tells a directly callable provider from
