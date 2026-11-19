@@ -340,7 +340,9 @@ briefly leaves no file selected does not close it. Ctrl/⌘+W closes the
 overlay first, as it does the Settings window. Its bar is the header's height and padded by
 `--oc-titlebar-start-inset` and `--oc-titlebar-end-inset` (published by
 `Header`), so the window controls the OS draws over the page (macOS traffic
-lights, the Windows controls overlay) never cover its buttons. On close the
+lights, the Windows controls overlay) never cover its buttons. It carries the
+header's `header-safe-area` class too, so on an iPad its buttons sit below the
+status bar as the header's do. On close the
 focus goes to the docked toggle, which a step may have remounted, so the docked
 arrows keep working.
 

@@ -8,7 +8,7 @@ import { type useFileDocument } from './useFileDocument';
 import { type useFileImageFullscreen } from './useFileImageFullscreen';
 import { type useFileTabs } from './useFileTabs';
 
-const BAR_CLASS = 'min-h-[var(--oc-header-height,56px)] ps-[var(--oc-titlebar-start-inset,0.75rem)] pe-[var(--oc-titlebar-end-inset,0.75rem)]';
+const BAR_CLASS = 'header-safe-area min-h-[var(--oc-header-height,56px)] ps-[var(--oc-titlebar-start-inset,0.75rem)] pe-[var(--oc-titlebar-end-inset,0.75rem)]';
 
 const dockedToggle = () => document.querySelector<HTMLElement>('[data-image-fullscreen-toggle="enter"]') ?? true;
 
